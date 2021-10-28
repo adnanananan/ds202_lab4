@@ -1,0 +1,100 @@
+---
+title: "lab4"
+author: "Adnan Salihovic"
+date: "10/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 7)
+```
+
+```{r}
+library(ggplot2)
+library(scales)
+library(tidyverse)
+library(dplyr)
+```
+
+```{r}
+library(readxl)
+defense <- read_excel('Downloads/cyclonesFootball2020.xlsx', sheet='Defensive')
+offense <- read_excel('Downloads/cyclonesFootball2020.xlsx', sheet='Offensive')
+biography <- read_excel('Downloads/cyclonesFootball2020.xlsx', sheet='Biography')
+
+"Begin Cleaning"
+offClean <- offense %>%
+  mutate(across(Receiving_REC:Rushing_TD, as.numeric))
+offClean <- offClean %>%
+  mutate(across(Passing_YDS:Passing_INT, as.numeric))
+offClean <- offClean %>%
+  mutate(across(Name:Name, as.factor))
+defClean <- defense %>%
+  mutate(across(Tackles_Solo:Pass_PB, as.numeric))
+defClean <- defClean %>%
+  mutate(across(Name:Name, as.factor))
+bioClean <- biography %>%
+  mutate(across(Weight:Weight, as.numeric))
+bioClean <- bioClean %>%
+  mutate(across(Name:Name, as.factor))
+
+bioClean <- bioClean %>%
+  separate(Height, c("Feet","Inches"), sep = '-', convert = TRUE, remove = FALSE) %>%
+  mutate(Height = Feet*12 + Inches) %>%
+  select(-Inches, -Feet)
+
+offClean <- offClean %>%
+  separate('Passing_CMP-ATT',c("Passing_CMP","Passing_ATT"), sep = '-', convert = TRUE, remove = FALSE) %>%
+  select(-"Passing_CMP-ATT")
+"End Cleaning"
+
+"Number 1"
+offClean <- offClean %>%
+  pivot_longer(Receiving_REC:Passing_INT, names_to = "Stat", values_to = "StatVal")
+
+"Number 2"
+df1 <- offClean %>%
+  group_by(Stat,Name) %>%
+  summarise(total = sum(StatVal, na.rm = TRUE))
+
+"NUMBER 3"
+ggplot(offClean, aes(y=Name,x=StatVal,color = Name)) + geom_boxplot(na.rm = TRUE) + facet_wrap(~Stat)
+
+"There are only 3 players who actively have any passing stats, the most significant player being Brock Purdy. As Brocks stats increase, so do the other offensive players receiving stats."
+
+"Number 4"
+df2 <- offClean %>%
+  subset(Opponent_Opponent == "Oklahoma" | Opponent_Opponent == "Oregon")
+df2 <- df2 %>%
+  subset(Stat == "Receiving_YDS")
+
+df2 <- df2 %>%
+  group_by(Opponent_Opponent,Name) %>%
+  summarise(total = sum(StatVal, na.rm = TRUE))
+
+ggplot(df2, aes(x= total, y= Name, color = Opponent_Opponent)) + geom_point()
+df2 %>%
+  group_by(Opponent_Opponent)%>%
+  summarise(totalReceivingYards = sum(total))
+"Looking at the scatterplot and the summary there was a higher total of receiving yards on average between 2 Oklahoma games (302) than Oregon has total so there was better offense against Oklahoma"
+
+"Number 5"
+bioClean<- bioClean %>%
+  separate('Hometown',c("City","State"), sep = ',', convert = TRUE, remove = FALSE) %>%
+  select(-"Hometown")
+
+bioClean %>%
+  select(Name,City,State)%>%
+  head(10)
+
+"Number 6"
+bioClean%>%
+  group_by(State)%>%
+  summarise(count = n())
+
+"Number 7"
+"Referring to the visual from number 3, looking at the averages, as brock purdy has a good game the offense players stats will go up respectively because he is the quarterback. If brock has a bad game, the offensive players stat drop. The defensive players are not directly reliant on Brock due to him not having any values in any of the columns but I think mentally the team is different based on how well the offense is doing."
+
+```
+
+
